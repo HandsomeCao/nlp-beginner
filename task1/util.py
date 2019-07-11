@@ -28,11 +28,21 @@ class Vocab(object):
         self.datasets = self._read_tsv(fp, mode)
         self.word2idx, self.idx2word = self._word_dict(self.datasets)
         # self.mat = self._mat()
-        self.labels = np.array([data[1] for data in self.datasets]) \
-            if mode == 'train' else np.zeros((1, len(self.datasets)))
+        # self.labels = np.array([data[1] for data in self.datasets]) \
+        #     if mode == 'train' else np.zeros((1, len(self.datasets)))
+        self.mode = mode
 
     def __len__(self):
         return len(self.word2idx)
+
+    def get_batch(self, batch_size=32):
+        lines = [tokenize_words(data[0]) for data in self.datasets]
+        batch_num = len(lines) // batch_size
+        for batch in range(batch_num):
+            voc_mat = [self.line2BowVec(line) for line in lines[batch*batch_size:(batch+1)*batch_size]]
+            labels = [data[1] for data in self.datasets] if self.mode == 'train' else []
+        yield np.array(voc_mat), np.array(labels)
+
 
     def _mat(self):
         lines = [tokenize_words(data[0]) for data in self.datasets]
@@ -67,11 +77,10 @@ class Vocab(object):
                     datasets.append([phase, int(label)])
                 if len(lines) == 3 and mode == 'test':
                     datasets.append(lines[-1])
-        print(len(datasets))
         return datasets
 
 
 if __name__ == "__main__":
     vocab = Vocab()
     print(len(vocab))
-    print(vocab.labels)
+    print(len(vocab.labels))
