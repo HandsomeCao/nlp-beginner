@@ -27,9 +27,6 @@ class Vocab(object):
     def __init__(self, fp=_FILE_PATH, mode='train', lowercase=True, filter_punc=True):
         self.datasets = self._read_tsv(fp, mode)
         self.word2idx, self.idx2word = self._word_dict(self.datasets)
-        # self.mat = self._mat()
-        # self.labels = np.array([data[1] for data in self.datasets]) \
-        #     if mode == 'train' else np.zeros((1, len(self.datasets)))
         self.mode = mode
 
     def __len__(self):
@@ -40,11 +37,18 @@ class Vocab(object):
         batch_num = len(lines) // batch_size
         for batch in range(batch_num):
             voc_mat = [self.line2BowVec(line) for line in lines[batch*batch_size:(batch+1)*batch_size]]
-            labels = [data[1] for data in self.datasets] if self.mode == 'train' else []
-        yield np.array(voc_mat), np.array(labels)
+            labels = [data[1] for data in self.datasets[batch*batch_size:(batch+1)*batch_size]] \
+                        if self.mode == 'train' else []
+            yield np.array(voc_mat), np.array(labels)
 
+    @property
+    def labels(self):
+        labels = np.array([data[1] for data in self.datasets]) \
+            if self.mode == 'train' else np.zeros((1, len(self.datasets)))
+        return labels
 
-    def _mat(self):
+    @property
+    def mat(self):
         lines = [tokenize_words(data[0]) for data in self.datasets]
         voc_mat = [self.line2BowVec(line) for line in tqdm(lines)]
         return np.array(voc_mat)
@@ -83,4 +87,7 @@ class Vocab(object):
 if __name__ == "__main__":
     vocab = Vocab()
     print(len(vocab))
-    print(len(vocab.labels))
+    for train_data, train_label in vocab.get_batch():
+        print(train_data, train_label)
+        break
+
