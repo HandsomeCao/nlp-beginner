@@ -75,8 +75,8 @@ class SoftmaxRegressor:
         # print()
         d_penalty_b = self.gamma * self.b if self.penalty == 'l2' \
             else self.gamma
-        d_W = -(np.dot(X.T, y - y_pred) + d_penalty_W) / N
-        d_b = -((np.sum(y - y_pred, axis=0) + d_penalty_b) / N)
+        d_W = (np.dot(X.T, y - y_pred) + d_penalty_W) / N
+        d_b = ((np.sum(y - y_pred, axis=0) + d_penalty_b) / N)
         return d_W, d_b
 
     def _one_hot(self, y):
