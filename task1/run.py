@@ -3,13 +3,13 @@
 import numpy as np
 import fire
 from tqdm import tqdm, trange
-from util import Vocab
+from util import BowVocab
 from model import SoftmaxRegressor
 
 def train(num_epochs, train_batch_size, save_path,
         lr=0.01, num_labels=5, early_stop_epoch=5,
         log_interval=200):
-    vocab = Vocab()
+    vocab = BowVocab()
     model = SoftmaxRegressor(num_labels=5, lr=0.01)
     min_loss = 10000
     tmp_epoch = 0
@@ -33,7 +33,7 @@ def train(num_epochs, train_batch_size, save_path,
 
 
 def predict(model, test_batch_size=256, save_path='./predict.txt'):
-    vocab = Vocab('./data/test.tsv', 'test')
+    vocab = BowVocab('./data/test.tsv', 'test')
     all_predicts = []
     for X, _ in vocab.get_batch(test_batch_size):
         predict = model.predict(X)

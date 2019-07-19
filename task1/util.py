@@ -23,7 +23,12 @@ def remove_stop_words(words):
     return [word for word in words if word not in _STOP_WORDS]
 
 
-class Vocab(object):
+def ngrams(sequence, N):
+    assert N >= 1
+    return list(zip(*[sequence[i:] for i in range(N)]))
+
+
+class BowVocab(object):
     def __init__(self, fp=_FILE_PATH, mode='train', lowercase=True, filter_punc=True):
         self.datasets = self._read_tsv(fp, mode)
         self.word2idx, self.idx2word = self._word_dict(self.datasets)
@@ -36,9 +41,10 @@ class Vocab(object):
         lines = [tokenize_words(data[0]) for data in self.datasets]
         batch_num = len(lines) // batch_size
         for batch in range(batch_num):
-            voc_mat = [self.line2BowVec(line) for line in lines[batch*batch_size:(batch+1)*batch_size]]
+            voc_mat = [self.line2BowVec(
+                line) for line in lines[batch*batch_size:(batch+1)*batch_size]]
             labels = [data[1] for data in self.datasets[batch*batch_size:(batch+1)*batch_size]] \
-                        if self.mode == 'train' else []
+                if self.mode == 'train' else []
             yield np.array(voc_mat), np.array(labels)
 
     @property
@@ -84,10 +90,58 @@ class Vocab(object):
         return datasets
 
 
+class BigramVocab:
+    def __init__(self, fp, mode='train'):
+        self.datasets = self._read_tsv(fp)
+        self.gram2index, self.index2gram = self._gram_dict(self.datasets)
+        self.mode = 'train'
+
+    def get_batch(self, batch_size=32):
+        lines = [tokenize_words(data[0]) for data in self.datasets]
+        # grams = ngrams(lines, 2)
+        batch_num = len(lines) // batch_size
+        for batch in range(batch_num):
+            voc_mat = [self.line2gram(
+                ngrams(line, 2)) for line in lines[batch*batch_size:(batch+1)*batch_size]]
+            labels = [data[1] for data in self.datasets[batch*batch_size:(batch+1)*batch_size]] \
+                if self.mode == 'train' else []
+            yield np.array(voc_mat), np.array(labels)
+
+    def line2gram(self, line):
+        vec = len(self.gram2index) * [0]
+        for k, v in Counter(ngrams(line, 2)).items():
+            vec[self.gram2index[k]] = v
+        return vec
+
+    def _gram_dict(self, datasets):
+        grams = []
+        for dataset in datasets:
+            words = tokenize_words(dataset[0])
+            grams += ngrams(words, 2)
+        grams = list(set(grams))
+        gram2idx = {gram: i for i, gram in enumerate(grams)}
+        idx2grams = {i: gram for i, gram in enumerate(grams)}
+        return gram2idx, idx2grams
+
+    def _read_tsv(self, fp, mode='train'):
+        datasets = []
+        with open(fp, 'r', encoding='utf-8') as fr:
+            for lidx, line in enumerate(fr):
+                if lidx == 0:
+                    continue
+                lines = line.strip().split('\t')
+                # print(len(lines))
+                if len(lines) == 4 and mode == 'train':
+                    phase, label = lines[2], lines[3]
+                    datasets.append([phase, int(label)])
+                if len(lines) == 3 and mode == 'test':
+                    datasets.append(lines[-1])
+        return datasets
+
+
 if __name__ == "__main__":
-    vocab = Vocab()
+    vocab = BowVocab()
     print(len(vocab))
     for train_data, train_label in vocab.get_batch():
         print(train_data, train_label)
         break
-
